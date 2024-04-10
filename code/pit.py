@@ -1,8 +1,8 @@
-from utils.pit_agent import Agent
-from utils.alpha_nnet import AlphaNNet
-from utils.pit_mp_game_runner import MPGameRunner
+from time import sleep, time
 
-from time import time, sleep
+from utils.alpha_nnet import AlphaNNet
+from utils.pit_agent import Agent
+from utils.pit_mp_game_runner import MPGameRunner
 
 pit_games = 1000
 threshold = 0.51
@@ -10,19 +10,21 @@ height = 11
 width = 11
 snake_cnt = 2
 
-model_name = input("Enter the model name (not including the generation number nor \".h5\"):\n")
+model_name = input(
+    'Enter the model name (not including the generation number nor ".h5"):\n'
+)
 iteration = int(input("Enter the starting generation (the first champion):\n"))
-nnet = AlphaNNet(model_name = "models/" + model_name + str(iteration) + ".h5")
-f = open("pit.txt", 'a')
+nnet = AlphaNNet(model_name="models/" + model_name + str(iteration) + ".h5")
+f = open("pit.txt", "a")
 f.write(model_name + str(iteration) + " is set to be the baseline champion.\n")
 f.close()
 Alice = Agent(nnet)
-Alice_snake_cnt = snake_cnt//2
+Alice_snake_cnt = snake_cnt // 2
 iteration += 1
 new_challenger = False
 while True:
     try:
-        nnet = AlphaNNet(model_name = "models/" + model_name + str(iteration) + ".h5")
+        nnet = AlphaNNet(model_name="models/" + model_name + str(iteration) + ".h5")
         new_challenger = True
         print("A new challenger,", model_name + str(iteration))
         Bob = Agent(nnet)
@@ -41,17 +43,27 @@ while True:
                 loss += 1.0
             else:
                 win += 1.0
-        score = win/(win + loss)
+        score = win / (win + loss)
         if score > threshold:
             Alice = Bob
-            f = open("pit.txt", 'a')
-            f.write(model_name + str(iteration) + " beats the previouse champion. score = "
-                    + str(score) + ". It is the new champion!\n")
+            f = open("pit.txt", "a")
+            f.write(
+                model_name
+                + str(iteration)
+                + " beats the previouse champion. score = "
+                + str(score)
+                + ". It is the new champion!\n"
+            )
             f.close()
         else:
-            f = open("pit.txt", 'a')
-            f.write(model_name + str(iteration) + " failed to beat the previouse champion. score = "
-                    + str(score) + ".\n")
+            f = open("pit.txt", "a")
+            f.write(
+                model_name
+                + str(iteration)
+                + " failed to beat the previouse champion. score = "
+                + str(score)
+                + ".\n"
+            )
             f.close()
         print("Competing time", time() - t0)
         iteration += 1

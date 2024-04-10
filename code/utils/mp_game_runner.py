@@ -2,15 +2,18 @@ from time import time
 
 from utils.game import Game
 
+
 class MPGameRunner:
-    
-    def __init__(self, height = 11, width = 11, snake_cnt = 4, health_dec = 1, game_cnt = 1):
+
+    def __init__(self, height=11, width=11, snake_cnt=4, health_dec=1, game_cnt=1):
         self.height = height
         self.width = width
         self.snake_cnt = snake_cnt
         self.health_dec = health_dec
         self.game_cnt = game_cnt
-        self.games = {ID: Game(ID, height, width, snake_cnt, health_dec) for ID in range(game_cnt)}
+        self.games = {
+            ID: Game(ID, height, width, snake_cnt, health_dec) for ID in range(game_cnt)
+        }
         # log
         self.wall_collision = 0
         self.body_collision = 0
@@ -18,14 +21,14 @@ class MPGameRunner:
         self.starvation = 0
         self.food_eaten = 0
         self.game_length = 0
-    
+
     # Alice is the agent
     def run(self, Alice):
         t0 = time()
         games = self.games
         show = self.game_cnt == 1
-        rewards = [None]*self.game_cnt
-        
+        rewards = [None] * self.game_cnt
+
         # run all the games in parallel
         turn = 0
         while games:
@@ -34,8 +37,13 @@ class MPGameRunner:
             if len(games) == 1:
                 print("Running the root game. On turn", str(turn) + "...")
             else:
-                print("Concurrently running", len(games), "root games. On turn", str(turn) + "...")
-            
+                print(
+                    "Concurrently running",
+                    len(games),
+                    "root games. On turn",
+                    str(turn) + "...",
+                )
+
             # ask for moves from the Agent
             ids = []
             for game_id in games:
@@ -44,7 +52,7 @@ class MPGameRunner:
             moves_for_game = {game_id: [] for game_id in games}
             for i in range(len(moves)):
                 moves_for_game[ids[i][0]].append(moves[i])
-            
+
             # tic all games
             kills = set()
             for game_id in games:
@@ -64,9 +72,15 @@ class MPGameRunner:
             # remove games that ended
             for game_id in kills:
                 del games[game_id]
-            
-            print("Root game turn", str(turn), "finished. Total time spent:", time() - t0, end = "\n\n")
-        
+
+            print(
+                "Root game turn",
+                str(turn),
+                "finished. Total time spent:",
+                time() - t0,
+                end="\n\n",
+            )
+
         # log
         self.wall_collision /= self.game_cnt
         self.body_collision /= self.game_cnt
@@ -76,16 +90,17 @@ class MPGameRunner:
         self.game_length /= self.game_cnt
         return rewards
 
+
 class MCTSMPGameRunner(MPGameRunner):
 
     def __init__(self, games):
         self.games = games
-    
+
     # MCTSAlice is the agent
     def run(self, MCTSAlice, MCTS_depth):
         games = self.games
         rewards = {game_id: None for game_id in games}
-        
+
         # run all the games in parallel
         turn = 0
         while games:
@@ -98,7 +113,7 @@ class MCTSMPGameRunner(MPGameRunner):
             moves_for_game = {game_id: [] for game_id in games}
             for i in range(len(moves)):
                 moves_for_game[ids[i][0]].append(moves[i])
-            
+
             # tic all games
             kills = set()
             for game_id in games:
@@ -111,5 +126,5 @@ class MCTSMPGameRunner(MPGameRunner):
             # remove games that ended
             for game_id in kills:
                 del games[game_id]
-        
+
         return rewards

@@ -1,4 +1,5 @@
-from random import sample, choice, random
+from random import choice, random, sample
+
 from numpy import array, float32, rot90
 
 WALL = 1.0
@@ -8,27 +9,38 @@ HEALTH_m = 0.01
 SNAKE_m = 0.02
 HEAD_m = 0.04
 
+
 class Game:
-    
-    def __init__(self, ID, height = 11, width = 11, snake_cnt = 4, health_dec = 1, food_spawn_chance = 0.15):
+
+    def __init__(
+        self, ID, height=11, width=11, snake_cnt=4, health_dec=1, food_spawn_chance=0.15
+    ):
         self.id = ID
         self.height = height
         self.width = width
         self.snake_cnt = snake_cnt
         self.health_dec = health_dec
         self.food_spawn_chance = food_spawn_chance
-        self.rewards = [None]*snake_cnt
-        
+        self.rewards = [None] * snake_cnt
+
         # standard starting board positions (in order) for 7x7, 11x11, and 19x19
         # battlesnake uses random positions for any non-standard board size
         # https://github.com/BattlesnakeOfficial/engine/blob/master/rules/create.go
-        positions = sample(((1, 1), (height - 2, width - 2),
-                            (height - 2, 1), (1, width - 2),
-                            (1, width//2), (height//2, width - 2),
-                            (height - 2, width//2), (height//2, 1)),
-                           snake_cnt)
+        positions = sample(
+            (
+                (1, 1),
+                (height - 2, width - 2),
+                (height - 2, 1),
+                (1, width - 2),
+                (1, width // 2),
+                (height // 2, width - 2),
+                (height - 2, width // 2),
+                (height // 2, 1),
+            ),
+            snake_cnt,
+        )
         self.last_moves = {i: choice((0, 1, 2, 3)) for i in range(snake_cnt)}
-        
+
         # I changed the data structure to speed up the game
         # empty_positions is used to generate food randomly
         self.empty_positions = {(y, x) for y in range(height) for x in range(width)}
@@ -40,18 +52,26 @@ class Game:
 
         # place food
         # one food at the center and one 2-step-away food for each snake
-        self.food = {(height//2, width//2)}
+        self.food = {(height // 2, width // 2)}
         for snake in self.snakes:
             head_y, head_x = snake.head.position
-            self.food.add(choice([(head_y - 1, head_x - 1), (head_y - 1, head_x + 1),
-                                  (head_y + 1, head_x - 1), (head_y + 1, head_x + 1)]))
+            self.food.add(
+                choice(
+                    [
+                        (head_y - 1, head_x - 1),
+                        (head_y - 1, head_x + 1),
+                        (head_y + 1, head_x - 1),
+                        (head_y + 1, head_x + 1),
+                    ]
+                )
+            )
         for food in self.food:
             self.empty_positions.remove(food)
-        
+
         # two board sets are used to reduce run time
         self.heads = {snake.head.position: {snake} for snake in self.snakes}
         self.bodies = {body for snake in self.snakes for body in snake}
-        
+
         # log
         self.wall_collision = 0
         self.body_collision = 0
@@ -65,17 +85,21 @@ class Game:
     Return:
         a list of states for each snake
     """
+
     def get_states(self):
-        return [self.make_state(snake, self.last_moves[snake.id]) for snake in self.snakes]
-    
+        return [
+            self.make_state(snake, self.last_moves[snake.id]) for snake in self.snakes
+        ]
+
     """
     Get game and snake ids
     Return:
         a list of pairs (this game's id, snake's id)
     """
+
     def get_ids(self):
         return [(self.id, snake.id) for snake in self.snakes]
-    
+
     """
     Move the game to the next turn
     Args:
@@ -84,7 +108,8 @@ class Game:
     Return:
         0 if the game continues or the rewards list if the game ends
     """
-    def tic(self, moves, show = False):
+
+    def tic(self, moves, show=False):
         snakes = self.snakes
         # execute moves
         for i in range(len(snakes)):
@@ -112,11 +137,11 @@ class Game:
                 # no one enters this cell
                 if tail not in self.heads:
                     self.empty_positions.add(tail)
-        
+
         # reduce health
         for snake in snakes:
             snake.health -= self.health_dec
-        
+
         # check for food eaten
         for snake in snakes:
             if snake.head.position in self.food:
@@ -125,7 +150,7 @@ class Game:
                 snake.health = 100
                 snake.grow()
                 self.food_eaten += 1
-        
+
         # spawn food
         if self.food_spawn_chance > 0.0:
             if len(self.food) == 0 or random() <= self.food_spawn_chance:
@@ -136,16 +161,21 @@ class Game:
                 except IndexError:
                     # Cannot choose from an empty set
                     pass
-        
+
         if show:
             self.draw()
-        
+
         # remove dead snakes
         kills = set()
         for snake in snakes:
             head = snake.head.position
             # check for wall collisions
-            if head[0] < 0 or head[0] >= self.height or head[1] < 0 or head[1] >= self.width:
+            if (
+                head[0] < 0
+                or head[0] >= self.height
+                or head[1] < 0
+                or head[1] >= self.width
+            ):
                 kills.add(snake)
                 self.wall_collision += 1
             # check for body collisions
@@ -172,7 +202,12 @@ class Game:
                 # it might die due to starvation or equal-length head on collision
                 # only in those two cases, the head position should become an empty space
                 # not out of bound and not into a body and not into a food
-                if head[0] >= 0 and head[0] < self.height and head[1] >= 0 and head[1] < self.width:
+                if (
+                    head[0] >= 0
+                    and head[0] < self.height
+                    and head[1] >= 0
+                    and head[1] < self.width
+                ):
                     # head is in range
                     if head not in self.bodies and head not in self.food:
                         self.empty_positions.add(head)
@@ -190,10 +225,10 @@ class Game:
                     pass
             snakes.remove(snake)
             self.rewards[snake.id] = -1.0
-        
+
         if show:
             self.draw()
-        
+
         self.game_length += 1
         # return rewards if the game ends
         if len(snakes) <= 1:
@@ -203,7 +238,7 @@ class Game:
         # return 0 if the game continues
         else:
             return 0
-    
+
     """
     Process the game data and translate them into a game state
     Args:
@@ -212,49 +247,54 @@ class Game:
     Return:
         a grid that represents the game state for a snake
     """
+
     def make_state(self, you, last_move):
         # gotta do the math to recenter the grid
         width = self.width * 2 - 1
         height = self.height * 2 - 1
         grid = [[[0.0, WALL, 0.0] for col in range(width)] for row in range(height)]
-        center_y = height//2
-        center_x = width//2
+        center_y = height // 2
+        center_x = width // 2
         # the original game board
         # it's easier to work on the original board then transfer it onto the grid
-        board = [[[0.0, 0.0, 0.0] for col in range(self.width)] for row in range(self.height)]
-        
+        board = [
+            [[0.0, 0.0, 0.0] for col in range(self.width)] for row in range(self.height)
+        ]
+
         # positions are (y, x) not (x, y)
         # because you read the grid row by row, i.e. (row number, column number)
         # otherwise the board is transposed
         length_minus_half = you.length - 0.5
         for snake in self.snakes:
             # get the head
-            board[snake.head.position[0]][snake.head.position[1]][0] = (snake.length - length_minus_half)*HEAD_m
+            board[snake.head.position[0]][snake.head.position[1]][0] = (
+                snake.length - length_minus_half
+            ) * HEAD_m
             # get the body
             # the head is also counted as a body for the making of the state because it will be a body next turn
             # going backwards because there could be a repeated tail when snake eats food
             body = snake.tail
             dist = 1
             while body:
-                board[body.position[0]][body.position[1]][1] = dist*SNAKE_m
+                board[body.position[0]][body.position[1]][1] = dist * SNAKE_m
                 body = body.prev_node
                 dist += 1
-        
+
         for food in self.food:
-            board[food[0]][food[1]][2] = (101 - you.health)*HEALTH_m
-        
+            board[food[0]][food[1]][2] = (101 - you.health) * HEALTH_m
+
         # from this point, all positions are measured relative to our head
         head_y, head_x = you.head.position
-        board[head_y][head_x] = [MY_HEAD]*3
+        board[head_y][head_x] = [MY_HEAD] * 3
         for y in range(self.height):
             for x in range(self.width):
                 grid[y - head_y + center_y][x - head_x + center_x] = board[y][x]
-        
+
         # k = 0 => identity
         # k = 1 => rotate left
         # k = 2 => rotate 180
         # k = 3 => rotate right
-        return rot90(array(grid, dtype = float32), k = last_move)
+        return rot90(array(grid, dtype=float32), k=last_move)
 
     """
     Copy the game
@@ -263,9 +303,12 @@ class Game:
     Return:
         a deep copy of the game
     """
+
     def subgame(self, subgame_id):
         # subgames don't spawn food
-        game = Game(subgame_id, self.height, self.width, self.snake_cnt, self.health_dec, 0.0)
+        game = Game(
+            subgame_id, self.height, self.width, self.snake_cnt, self.health_dec, 0.0
+        )
         game.last_moves = {i: self.last_moves[i] for i in range(self.snake_cnt)}
         game.empty_positions = {(yx[0], yx[1]) for yx in self.empty_positions}
         game.snakes = [snake.copy() for snake in self.snakes]
@@ -278,29 +321,36 @@ class Game:
     """
     Draw the game board in "replay.rep"
     """
+
     def draw(self):
         board = [[0] * self.width for _ in range(self.height)]
-        
+
         for food in self.food:
             board[food[0]][food[1]] = 9
-        
-        for snake in sorted(self.snakes, key = lambda s: s.length):
+
+        for snake in sorted(self.snakes, key=lambda s: s.length):
             # head might go out of bound
             head_y, head_x = snake.head.position
-            if head_y >= 0 and head_y < self.height and head_x >= 0 and head_x < self.width:
+            if (
+                head_y >= 0
+                and head_y < self.height
+                and head_x >= 0
+                and head_x < self.width
+            ):
                 board[snake.head.position[0]][snake.head.position[1]] = -(snake.id + 1)
         for snake in self.snakes:
             for body in snake:
                 board[body[0]][body[1]] = snake.id + 1
-        
-        f = open("replay.rep", 'a')
+
+        f = open("replay.rep", "a")
         for row in board:
-            f.write(str(row) + '\n')
-        f.write('\n')
+            f.write(str(row) + "\n")
+        f.write("\n")
         f.close()
 
+
 class Snake:
-    
+
     def __init__(self, ID, health, head_and_body):
         self.id = ID
         self.health = health
@@ -312,12 +362,12 @@ class Snake:
             new_node.prev_node = self.tail
             self.tail.next_node = new_node
             self.tail = new_node
-    
+
     # iterate through the body's position (not including the head)
     def __iter__(self):
         self.curr = self.head.next_node
         return self
-    
+
     def __next__(self):
         if self.curr:
             position = self.curr.position
@@ -325,15 +375,15 @@ class Snake:
             return position
         else:
             raise StopIteration
-    
+
     def move(self, direction):
-        if direction == 0:   # up
+        if direction == 0:  # up
             y = self.head.position[0] - 1
             x = self.head.position[1]
-        elif direction == 1: # right
+        elif direction == 1:  # right
             y = self.head.position[0]
             x = self.head.position[1] + 1
-        elif direction == 2: # down
+        elif direction == 2:  # down
             y = self.head.position[0] + 1
             x = self.head.position[1]
         # if direction == 3: # left
@@ -348,22 +398,22 @@ class Snake:
         old_tail = self.tail
         self.tail = self.tail.prev_node
         self.tail.next_node = None
-        
+
         # return the new head, the old head and the removed tail
         # tells the Game how to up date the board sets
         # don't remove the tail if it is on top of another body
         if old_tail.position == self.tail.position:
             old_tail.position = None
-        
+
         return (new_head.position, old_head.position, old_tail.position)
-    
+
     def grow(self):
         self.length += 1
         new_tail = Node(self.tail.position)
         new_tail.prev_node = self.tail
         self.tail.next_node = new_tail
         self.tail = new_tail
-    
+
     def copy(self):
         snake = Snake(self.id, self.health, [(0, 0)])
         snake.length = self.length
@@ -378,8 +428,9 @@ class Snake:
             curr = curr.next_node
         return snake
 
+
 class Node:
-    
+
     def __init__(self, yx):
         self.position = yx
         self.prev_node = None

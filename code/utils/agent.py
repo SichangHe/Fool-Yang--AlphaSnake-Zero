@@ -1,13 +1,20 @@
-from numpy import power, arctanh, array, float32
-from numpy.random import choice
 from time import time
 
+from numpy import arctanh, array, float32, power
+from numpy.random import choice
 from utils.mp_game_runner import MCTSMPGameRunner
 
+
 class Agent:
-    
-    def __init__(self, nnet, softmax_base = 100, training = False,
-                 max_MCTS_depth = 8, max_MCTS_breadth = 128):
+
+    def __init__(
+        self,
+        nnet,
+        softmax_base=100,
+        training=False,
+        max_MCTS_depth=8,
+        max_MCTS_breadth=128,
+    ):
         self.nnet = nnet
         self.softmax_base = softmax_base
         self.training = training
@@ -21,7 +28,7 @@ class Agent:
         if training:
             self.records = []
             self.values = []
-    
+
     def make_moves(self, games, ids):
         cached_values = self.cached_values
         total_rewards = self.total_rewards
@@ -32,9 +39,9 @@ class Agent:
         parallel = 8
         if self.max_MCTS_breadth < parallel:
             parallel = self.max_MCTS_breadth
-        
+
         # MCTS
-        for _ in range(self.max_MCTS_breadth//parallel):
+        for _ in range(self.max_MCTS_breadth // parallel):
             # make a subgame for each game
             MCTS_depth = {}
             parent_games = {}
@@ -42,21 +49,28 @@ class Agent:
             subgame_id = 0
             for game_id in games:
                 # calculate the max MCTS depth for each game
-                depth = self.max_MCTS_depth - 2*(len(games[game_id].snakes) - 2)
+                depth = self.max_MCTS_depth - 2 * (len(games[game_id].snakes) - 2)
                 for _ in range(parallel):
                     MCTS_depth[subgame_id] = depth
                     parent_games[subgame_id] = game_id
                     subgames[subgame_id] = games[game_id].subgame(subgame_id)
                     subgame_id += 1
             # run MCTS subgames
-            MCTSAlice = MCTSAgent(self.nnet, self.softmax_base, subgames,
-                                  cached_values, total_rewards, visit_cnts, cache_hit)
+            MCTSAlice = MCTSAgent(
+                self.nnet,
+                self.softmax_base,
+                subgames,
+                cached_values,
+                total_rewards,
+                visit_cnts,
+                cache_hit,
+            )
             MCTS = MCTSMPGameRunner(subgames)
             t0 = time()
             rewards = MCTS.run(MCTSAlice, MCTS_depth)
             if self.training:
                 print("MCTS epoch finished. Time spent:", time() - t0)
-            
+
             # update edge stats
             for subgame_id in MCTSAlice.keys:
                 for snake_id in MCTSAlice.keys[subgame_id]:
@@ -69,9 +83,11 @@ class Agent:
                             move = my_moves[i]
                             visit_cnts[key][move] += 1.0
                             total_rewards[key][move] += rewards[subgame_id][snake_id]
-                            cached_values[key][move] = total_rewards[key][move]/visit_cnts[key][move]
-        
-        V = [None]*len(ids)
+                            cached_values[key][move] = (
+                                total_rewards[key][move] / visit_cnts[key][move]
+                            )
+
+        V = [None] * len(ids)
         # store the index of the value in V a (game_id, snake_id) coresponds to
         value_index = {}
         for i in range(len(ids)):
@@ -85,11 +101,11 @@ class Agent:
             for snake_id in MCTSAlice.keys[subgame_id]:
                 first_key = MCTSAlice.keys[subgame_id][snake_id][0]
                 V[value_index[game_id][snake_id]] = cached_values[first_key]
-        
+
         # make moves
         if self.training:
             pmfs = [self.softermax(v) for v in V]
-            moves = [choice([0, 1, 2], p = pmf) for pmf in pmfs]
+            moves = [choice([0, 1, 2], p=pmf) for pmf in pmfs]
             states = []
             for game_id in games:
                 states += games[game_id].get_states()
@@ -97,7 +113,7 @@ class Agent:
             self.values += V
         else:
             moves = self.argmaxs(V)
-        
+
         # RAM recycle
         kills = set()
         for key in cache_hit:
@@ -109,7 +125,7 @@ class Agent:
             del visit_cnts[key]
             del cache_hit[key]
         return moves
-    
+
     # a softmax function with customized base
     def softermax(self, z):
         # the higher the base is, the more it highlights the higher ones
@@ -117,10 +133,10 @@ class Agent:
         # in case all three cells are obstacles (-1.0), softmax will fail on 0.0/0.0
         sigma = sum(normalized)
         if sigma == 0.0:
-            return array([1.0/3.0]*3, dtype = float32)
+            return array([1.0 / 3.0] * 3, dtype=float32)
         else:
-            return normalized/sigma
-    
+            return normalized / sigma
+
     def argmaxs(self, Z):
         argmaxs = [-1] * len(Z)
         for i in range(len(Z)):
@@ -135,7 +151,7 @@ class Agent:
                 else:
                     argmaxs[i] = 2
         return argmaxs
-    
+
     # clear memory
     def clear(self):
         self.cached_values = {}
@@ -146,9 +162,19 @@ class Agent:
             self.records = []
             self.values = []
 
+
 class MCTSAgent(Agent):
-    
-    def __init__(self, nnet, softmax_base, games, cached_values, total_rewards, visit_cnts, cache_hit):
+
+    def __init__(
+        self,
+        nnet,
+        softmax_base,
+        games,
+        cached_values,
+        total_rewards,
+        visit_cnts,
+        cache_hit,
+    ):
         self.nnet = nnet
         self.softmax_base = softmax_base
         self.cached_values = cached_values
@@ -157,16 +183,16 @@ class MCTSAgent(Agent):
         self.cache_hit = cache_hit
         self.keys = {i: {s.id: [] for s in games[i].snakes} for i in games}
         self.moves = {i: {s.id: [] for s in games[i].snakes} for i in games}
-    
+
     def make_moves(self, games, ids):
         cached_values = self.cached_values
         total_rewards = self.total_rewards
         visit_cnts = self.visit_cnts
         cache_hit = self.cache_hit
-        V = [None]*len(ids)
-        keys = [None]*len(ids)
+        V = [None] * len(ids)
+        keys = [None] * len(ids)
         all_states = []
-        
+
         # get states without duplicates
         i = 0
         for game_id in games:
@@ -184,7 +210,7 @@ class MCTSAgent(Agent):
                     cached_values[key] = None
                 cache_hit[key] = 0
                 i += 1
-        
+
         # calculate values using the net
         if all_states:
             calculated_V = self.nnet.v(all_states)
@@ -195,15 +221,17 @@ class MCTSAgent(Agent):
                     if cached_values[keys[i]] is None:
                         # the calculated Q values will be a prior
                         total_rewards[keys[i]] = calculated_V[j]
-                        visit_cnts[keys[i]] = array([1.0]*3, dtype = float32)
-                        cached_values[keys[i]] = total_rewards[keys[i]]/visit_cnts[keys[i]]
+                        visit_cnts[keys[i]] = array([1.0] * 3, dtype=float32)
+                        cached_values[keys[i]] = (
+                            total_rewards[keys[i]] / visit_cnts[keys[i]]
+                        )
                         j += 1
                     V[i] = cached_values[keys[i]]
-        
+
         # make randomized moves
         pmfs = [self.softermax(v) for v in V]
-        moves = [choice([0, 1, 2], p = pmf) for pmf in pmfs]
-        
+        moves = [choice([0, 1, 2], p=pmf) for pmf in pmfs]
+
         # update MCTS edge stats and record state keys and moves
         for i in range(len(ids)):
             game_id = ids[i][0]
@@ -211,13 +239,15 @@ class MCTSAgent(Agent):
             my_keys = self.keys[game_id][snake_id]
             my_moves = self.moves[game_id][snake_id]
             # back up
-            estimated_reward = pmfs[i]@V[i]
+            estimated_reward = pmfs[i] @ V[i]
             for j in range(len(my_keys) - 1, -1, -1):
                 key = my_keys[j]
                 move = my_moves[j]
                 visit_cnts[key][move] += 1.0
                 total_rewards[key][move] += estimated_reward
-                cached_values[key][move] = total_rewards[key][move]/visit_cnts[key][move]
+                cached_values[key][move] = (
+                    total_rewards[key][move] / visit_cnts[key][move]
+                )
             my_keys.append(keys[i])
             my_moves.append(moves[i])
         return moves

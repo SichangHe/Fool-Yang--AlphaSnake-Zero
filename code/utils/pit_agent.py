@@ -1,17 +1,18 @@
-from numpy import power, array
+from numpy import array, power
 from numpy.random import choice
 
+
 class Agent:
-    
-    def __init__(self, nnet, game_and_snake_cnt = None):
+
+    def __init__(self, nnet, game_and_snake_cnt=None):
         self.nnet = nnet
         self.game_and_snake_cnt = game_and_snake_cnt
-    
-    def make_moves(self, states, ids = None):
+
+    def make_moves(self, states, ids=None):
         V = self.nnet.v(states)
-        moves = self.argmaxs(V) 
+        moves = self.argmaxs(V)
         return moves
-    
+
     def argmaxs(self, Z):
         argmaxs = [-1] * len(Z)
         for i in range(len(Z)):
