@@ -1,5 +1,6 @@
 from time import time
 
+from utils.agent import MCTSAgent
 from utils.game import Game
 
 
@@ -45,7 +46,7 @@ class MPGameRunner:
                 )
 
             # ask for moves from the Agent
-            ids = []
+            ids: list[tuple[int, int]] = []
             for game_id in games:
                 ids += games[game_id].get_ids()
             moves = Alice.make_moves(games, ids)
@@ -93,11 +94,11 @@ class MPGameRunner:
 
 class MCTSMPGameRunner(MPGameRunner):
 
-    def __init__(self, games):
+    def __init__(self, games: dict[int, Game]):
         self.games = games
 
     # MCTSAlice is the agent
-    def run(self, MCTSAlice, MCTS_depth):
+    def run(self, MCTSAlice: MCTSAgent, MCTS_depth: dict[int, int]):
         games = self.games
         rewards = {game_id: None for game_id in games}
 
@@ -106,7 +107,7 @@ class MCTSMPGameRunner(MPGameRunner):
         while games:
             turn += 1
             # ask for moves from the Agent
-            ids = []
+            ids: list[tuple[int, int]] = []
             for game_id in games:
                 ids += games[game_id].get_ids()
             moves = MCTSAlice.make_moves(games, ids)

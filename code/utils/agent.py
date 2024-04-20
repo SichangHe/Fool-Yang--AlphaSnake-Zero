@@ -2,6 +2,7 @@ from time import time
 
 from numpy import arctanh, array, float32, power
 from numpy.random import choice
+from utils.game import Game
 from utils.mp_game_runner import MCTSMPGameRunner
 
 
@@ -29,7 +30,7 @@ class Agent:
             self.records = []
             self.values = []
 
-    def make_moves(self, games, ids):
+    def make_moves(self, games: dict[int, Game], ids: list[tuple[int, int]]):
         cached_values = self.cached_values
         total_rewards = self.total_rewards
         visit_cnts = self.visit_cnts
@@ -43,9 +44,9 @@ class Agent:
         # MCTS
         for _ in range(self.max_MCTS_breadth // parallel):
             # make a subgame for each game
-            MCTS_depth = {}
+            MCTS_depth: dict[int, int] = {}
             parent_games = {}
-            subgames = {}
+            subgames: dict[int, Game] = {}
             subgame_id = 0
             for game_id in games:
                 # calculate the max MCTS depth for each game
@@ -184,7 +185,7 @@ class MCTSAgent(Agent):
         self.keys = {i: {s.id: [] for s in games[i].snakes} for i in games}
         self.moves = {i: {s.id: [] for s in games[i].snakes} for i in games}
 
-    def make_moves(self, games, ids):
+    def make_moves(self, games: dict[int, Game], ids: list[tuple[int, int]]):
         cached_values = self.cached_values
         total_rewards = self.total_rewards
         visit_cnts = self.visit_cnts

@@ -13,7 +13,13 @@ HEAD_m = 0.04
 class Game:
 
     def __init__(
-        self, ID, height=11, width=11, snake_cnt=4, health_dec=1, food_spawn_chance=0.15
+        self,
+        ID: int,
+        height=11,
+        width=11,
+        snake_cnt=4,
+        health_dec=1,
+        food_spawn_chance=0.15,
     ):
         self.id = ID
         self.height = height
@@ -248,7 +254,7 @@ class Game:
         a grid that represents the game state for a snake
     """
 
-    def make_state(self, you, last_move):
+    def make_state(self, you: "Snake", last_move: dict[int, int]):
         # gotta do the math to recenter the grid
         width = self.width * 2 - 1
         height = self.height * 2 - 1
