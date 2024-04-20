@@ -254,7 +254,7 @@ class Game:
         a grid that represents the game state for a snake
     """
 
-    def make_state(self, you: "Snake", last_move: dict[int, int]):
+    def make_state(self, you: "Snake", last_move: int):
         # gotta do the math to recenter the grid
         width = self.width * 2 - 1
         height = self.height * 2 - 1
